@@ -119,14 +119,9 @@ jobs:
           dotnet publish src/WeatherAlert.Cli -c Release -r linux-bionic-arm64 \
             --self-contained -p:PublishSingleFile=true -o out-termux-arm64
 
-      - name: Publish CLI for Termux arm (32-bit)
-        run: |
-          dotnet publish src/WeatherAlert.Cli -c Release -r linux-bionic-arm \
-            --self-contained -p:PublishSingleFile=true -o out-termux-arm
-
       - name: Verify ELF
         run: |
-          file out-termux-arm64/weather-alert out-termux-arm/weather-alert
+          file out-termux-arm64/weather-alert
 
       - name: Build Termux deb (aarch64)
         run: |
@@ -144,7 +139,39 @@ jobs:
           path: |
             weather-alert-termux_1.0.0_aarch64.deb
             out-termux-arm64/weather-alert
-            out-termux-arm/weather-alert
+
+  publish-apt-repo:
+    name: 发布 apt 源（GitHub Pages）
+    needs: [android-terminal, linux]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dl
+
+      - name: Clone apt repo
+        run: |
+          git clone https://x-access-token:${{ secrets.APT_REPO_TOKEN }}@github.com/XingOfficial/weather-alert-repo.git repo
+          git -C repo config user.name "ci-bot"
+          git -C repo config user.email "ci-bot@users.noreply.github.com"
+
+      - name: Update debs & index
+        run: |
+          cp dl/android-terminal/weather-alert-termux_1.0.0_aarch64.deb repo/
+          cp dl/linux-debs/weather-alert-cli_1.0.0_amd64.deb repo/
+          cp dl/linux-debs/weather-alert-gui_1.0.0_amd64.deb repo/
+          cd repo
+          dpkg-scanpackages --multiversion . > Packages
+          gzip -k9f Packages
+          head -12 Packages
+
+      - name: Commit & push
+        run: |
+          cd repo
+          git add -A
+          git diff --cached --quiet && echo "no changes" || (git commit -qm "update packages" && git push -q origin main)
 
   ios:
     name: iOS ipa (arm64, ad-hoc 签名)
