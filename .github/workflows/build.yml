@@ -109,12 +109,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select newest Xcode
+      - name: Select newest complete Xcode
         run: |
-          ls -d /Applications/Xcode*.app || true
-          NEWEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          echo "Using $NEWEST"
-          sudo xcode-select -s "$NEWEST"
+          for CAND in $(ls -d /Applications/Xcode*.app | grep -v '^/Applications/Xcode.app$' | sort -rV); do
+            if [ -d "$CAND/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" ]; then
+              echo "Using $CAND"
+              sudo xcode-select -s "$CAND"
+              break
+            fi
+          done
           xcodebuild -version
 
       - name: Setup .NET 10
