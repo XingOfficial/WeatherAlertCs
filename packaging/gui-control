@@ -1,0 +1,11 @@
+Package: weather-alert-gui
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libc6, libx11-6, libfontconfig1, libxkbcommon0, libgtk-3-0
+Maintainer: XingOfficial <XingOfficial@users.noreply.github.com>
+Description: 天气预警查询图形界面（中央气象台数据）
+ Cross-platform GUI app (Avalonia) to query China
+ meteorological alerts from nmc.cn, with statistics
+ overview, filters, keyword search and favorites.

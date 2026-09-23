@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Weather Alert 天气预警
+Name[zh_CN]=天气预警查询
+Comment=全国气象预警查询（中央气象台数据）
+Exec=/usr/bin/weather-alert-gui
+Terminal=false
+Categories=Utility;Network;
+Keywords=weather;alert;预警;天气;

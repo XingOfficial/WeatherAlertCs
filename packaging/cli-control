@@ -1,0 +1,12 @@
+Package: weather-alert-cli
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libc6
+Maintainer: XingOfficial <XingOfficial@users.noreply.github.com>
+Description: 天气预警查询命令行工具（中央气象台数据）
+ Command-line tool to query China meteorological alerts
+ from the National Meteorological Centre (nmc.cn).
+ Supports filtering by province, alert type and level,
+ keyword search and detail viewing.

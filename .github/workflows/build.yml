@@ -1,0 +1,138 @@
+name: Build C# All Platforms
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: Android APK (arm64-v8a / armeabi-v7a)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Publish arm64-v8a
+        run: |
+          dotnet publish src/WeatherAlert.Mobile -f net8.0-android -c Release -r android-arm64 -o out/arm64
+          mv out/arm64/*-Signed.apk WeatherAlert-arm64-v8a.apk || mv out/arm64/*.apk WeatherAlert-arm64-v8a.apk
+
+      - name: Publish armeabi-v7a
+        run: |
+          dotnet publish src/WeatherAlert.Mobile -f net8.0-android -c Release -r android-arm -o out/arm
+          mv out/arm/*-Signed.apk WeatherAlert-armeabi-v7a.apk || mv out/arm/*.apk WeatherAlert-armeabi-v7a.apk
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: WeatherAlert-*.apk
+
+  windows:
+    name: Windows x64 exe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish win-x64 single file
+        run: |
+          dotnet publish src/WeatherAlert.Gui -c Release -r win-x64 --self-contained \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out-win
+          mv out-win/WeatherAlertGui.exe WeatherAlert-windows-x64.exe
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: WeatherAlert-windows-x64.exe
+
+  linux:
+    name: Linux debs (CLI + GUI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish CLI (linux-x64)
+        run: |
+          dotnet publish src/WeatherAlert.Cli -c Release -r linux-x64 --self-contained \
+            -p:PublishSingleFile=true -p:PublishTrimmed=true -o out-cli
+
+      - name: Publish GUI (linux-x64)
+        run: |
+          dotnet publish src/WeatherAlert.Gui -c Release -r linux-x64 --self-contained -o out-gui
+
+      - name: Build CLI deb
+        run: |
+          mkdir -p pkg-cli/DEBIAN pkg-cli/usr/bin
+          cp out-cli/weather-alert pkg-cli/usr/bin/weather-alert
+          chmod 755 pkg-cli/usr/bin/weather-alert
+          cp packaging/cli-control pkg-cli/DEBIAN/control
+          fakeroot dpkg-deb --build --root-owned-group pkg-cli weather-alert-cli_1.0.0_amd64.deb
+
+      - name: Build GUI deb
+        run: |
+          mkdir -p pkg-gui/DEBIAN pkg-gui/opt/weather-alert-gui pkg-gui/usr/bin pkg-gui/usr/share/applications
+          cp -r out-gui/* pkg-gui/opt/weather-alert-gui/
+          chmod 755 pkg-gui/opt/weather-alert-gui/WeatherAlertGui
+          ln -s /opt/weather-alert-gui/WeatherAlertGui pkg-gui/usr/bin/weather-alert-gui
+          cp packaging/gui-control pkg-gui/DEBIAN/control
+          cp packaging/weather-alert-gui.desktop pkg-gui/usr/share/applications/
+          fakeroot dpkg-deb --build --root-owned-group pkg-gui weather-alert-gui_1.0.0_amd64.deb
+
+      - name: Upload debs
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-debs
+          path: weather-alert-*.deb
+
+  ios:
+    name: iOS ipa (arm64, ad-hoc 签名)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install MAUI iOS workload
+        run: dotnet workload install maui-ios || dotnet workload install maui
+
+      - name: Publish iOS app
+        run: |
+          dotnet publish src/WeatherAlert.Mobile -f net8.0-ios -c Release -r ios-arm64 -o out-ios
+
+      - name: Package unsigned ipa (ad-hoc)
+        run: |
+          APP=$(find out-ios -name "*.app" -type d | head -1)
+          echo "Found app: $APP"
+          codesign --force --deep -s - "$APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry WeatherAlert-ios-arm64.ipa Payload
+          unzip -l WeatherAlert-ios-arm64.ipa | head -5
+
+      - name: Upload ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: WeatherAlert-ios-arm64.ipa
