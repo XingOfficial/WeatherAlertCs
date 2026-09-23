@@ -117,12 +117,12 @@ jobs:
       - name: Publish CLI for Termux arm64
         run: |
           dotnet publish src/WeatherAlert.Cli -c Release -r linux-bionic-arm64 \
-            --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -o out-termux-arm64
+            --self-contained -p:PublishSingleFile=true -o out-termux-arm64
 
       - name: Publish CLI for Termux arm (32-bit)
         run: |
           dotnet publish src/WeatherAlert.Cli -c Release -r linux-bionic-arm \
-            --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -o out-termux-arm
+            --self-contained -p:PublishSingleFile=true -o out-termux-arm
 
       - name: Verify ELF
         run: |
