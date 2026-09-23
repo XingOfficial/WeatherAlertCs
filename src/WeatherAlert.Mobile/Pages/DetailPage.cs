@@ -109,8 +109,8 @@ public class DetailPage : ContentPage
     private void ToggleFav()
     {
         var key = "fav_" + _alert.Id;
-        var now = !Microsoft.Maui.ApplicationModel.Preferences.Get(key, false);
-        Microsoft.Maui.ApplicationModel.Preferences.Set(key, now);
+        var now = !Microsoft.Maui.Storage.Preferences.Get(key, false);
+        Microsoft.Maui.Storage.Preferences.Set(key, now);
         _favLabel.Text = now ? "★ 已收藏（点击切换）" : "☆ 收藏（点击切换）";
         _onFavChanged();
     }
@@ -120,7 +120,7 @@ public class DetailPage : ContentPage
         var text = $"【天气预警】{_alert.Title}\n发布时间：{_alert.IssueTime}\n\n" +
                    $"{(_content.Text?.Length > 300 ? _content.Text[..300] + "…" : _content.Text)}\n\n" +
                    "—— 来自「天气预警」App（中央气象台数据）";
-        await Microsoft.Maui.ApplicationModel.Share.RequestAsync(
-            new Microsoft.Maui.ApplicationModel.ShareTextRequest { Text = text, Title = "分享预警" });
+        await Microsoft.Maui.ApplicationModel.DataTransfer.Share.RequestAsync(
+            new Microsoft.Maui.ApplicationModel.DataTransfer.ShareTextRequest { Text = text, Title = "分享预警" });
     }
 }

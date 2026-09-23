@@ -171,7 +171,7 @@ public class MainPage : ContentPage
     private void OnFavChanged() => Render();
 
     private static bool IsFav(Alert a) =>
-        Microsoft.Maui.ApplicationModel.Preferences.Get("fav_" + a.Id, false);
+        Microsoft.Maui.Storage.Preferences.Get("fav_" + a.Id, false);
 
     private void OnToggleFavFilter(object? sender, EventArgs e)
     {
