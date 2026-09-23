@@ -112,7 +112,7 @@ jobs:
       - name: Select newest complete Xcode
         run: |
           for CAND in $(ls -d /Applications/Xcode*.app | grep -v '^/Applications/Xcode.app$' | sort -rV); do
-            if [ -d "$CAND/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" ]; then
+            if DEVELOPER_DIR="$CAND" xcrun --find clang >/dev/null 2>&1; then
               echo "Using $CAND"
               sudo xcode-select -s "$CAND"
               break
