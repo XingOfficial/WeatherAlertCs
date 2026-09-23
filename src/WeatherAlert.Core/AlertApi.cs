@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace WeatherAlert.Core;
 
@@ -43,7 +44,8 @@ public static class AlertApi
         using var doc = await GetJsonAsync($"{ListUrl}?{q}", ct);
         var root = doc.RootElement;
         if (root.TryGetProperty("code", out var code) && code.GetInt32() != 0)
-            throw new ApiException(root.TryGetProperty("msg", out var msg) ? msg.GetString() : "接口异常");
+            throw new ApiException(
+                root.TryGetProperty("msg", out var msg) && msg.GetString() is { } m ? m : "接口异常");
 
         var data = root.GetProperty("data");
         var alerts = new List<Alert>();
