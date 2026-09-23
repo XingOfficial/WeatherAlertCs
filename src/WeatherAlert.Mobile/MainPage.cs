@@ -1,3 +1,4 @@
+using WeatherAlert.Core;
 using Microsoft.Maui.Controls;
 
 namespace WeatherAlert.Mobile;

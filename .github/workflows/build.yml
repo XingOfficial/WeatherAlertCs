@@ -85,7 +85,7 @@ jobs:
           cp out-cli/weather-alert pkg-cli/usr/bin/weather-alert
           chmod 755 pkg-cli/usr/bin/weather-alert
           cp packaging/cli-control pkg-cli/DEBIAN/control
-          fakeroot dpkg-deb --build --root-owned-group pkg-cli weather-alert-cli_1.0.0_amd64.deb
+          fakeroot dpkg-deb --build pkg-cli weather-alert-cli_1.0.0_amd64.deb
 
       - name: Build GUI deb
         run: |
@@ -95,7 +95,7 @@ jobs:
           ln -s /opt/weather-alert-gui/WeatherAlertGui pkg-gui/usr/bin/weather-alert-gui
           cp packaging/gui-control pkg-gui/DEBIAN/control
           cp packaging/weather-alert-gui.desktop pkg-gui/usr/share/applications/
-          fakeroot dpkg-deb --build --root-owned-group pkg-gui weather-alert-gui_1.0.0_amd64.deb
+          fakeroot dpkg-deb --build pkg-gui weather-alert-gui_1.0.0_amd64.deb
 
       - name: Upload debs
         uses: actions/upload-artifact@v4
@@ -127,7 +127,7 @@ jobs:
 
       - name: Publish iOS app
         run: |
-          dotnet publish src/WeatherAlert.Mobile -f net10.0-ios -c Release -r ios-arm64 -o out-ios
+          dotnet publish src/WeatherAlert.Mobile -f net10.0-ios -c Release -r ios-arm64 -p:EnableCodeSigning=false -o out-ios
 
       - name: Package unsigned ipa (ad-hoc)
         run: |
