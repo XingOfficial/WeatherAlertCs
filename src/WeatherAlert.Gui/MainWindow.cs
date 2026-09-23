@@ -42,60 +42,63 @@ public class MainWindow : Window
 
         _list.ItemTemplate = new FuncDataTemplate<Alert>((a, _) => BuildItem(a!));
 
-        Content = new DockPanel
+        var statBar = new Border
         {
-            Children =
+            Padding = new Thickness(10),
+            Background = new SolidColorBrush(Color.Parse("#E8F0FE")),
+            Child = _statText,
+        };
+        DockPanel.SetDock(statBar, Dock.Top);
+
+        var refreshButton = new Button { Content = "刷新" };
+        refreshButton.Click += async (_, _) => await LoadAsync();
+
+        var toolbar = new Border
+        {
+            Padding = new Thickness(10, 6),
+            Child = new StackPanel
             {
-                new Border
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Children = { _search, _province, _type, _level, _favOnly, refreshButton },
+            },
+        };
+        DockPanel.SetDock(toolbar, Dock.Top);
+
+        var detailPane = new ScrollViewer
+        {
+            Content = new StackPanel
+            {
+                Spacing = 10,
+                Margin = new Thickness(14),
+                Children =
                 {
-                    Dock = DockPanel.Dock.Top,
-                    Padding = new Thickness(10),
-                    Background = new SolidColorBrush(Color.Parse("#E8F0FE")),
-                    Child = _statText,
-                },
-                new Border
-                {
-                    Dock = DockPanel.Dock.Top,
-                    Padding = new Thickness(10, 6),
-                    Child = new StackPanel
+                    _detailTitle, _detailMeta,
+                    new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
                         Spacing = 8,
-                        Children = { _search, _province, _type, _level, _favOnly,
-                            new Button { Content = "刷新", Command = ReactiveCommand.Create(LoadAsync) } },
+                        Children = { _favButton, _openButton },
                     },
-                },
-                new Grid
-                {
-                    ColumnDefinitions = new ColumnDefinitions("*, 8, 1.2*"),
-                    Children =
-                    {
-                        _list,
-                        new GridSplitter { Grid.Column = 1, Background = Brushes.Transparent },
-                        new ScrollViewer
-                        {
-                            Grid.Column = 2,
-                            Content = new StackPanel
-                            {
-                                Spacing = 10,
-                                Margin = new Thickness(14),
-                                Children =
-                                {
-                                    _detailTitle, _detailMeta,
-                                    new StackPanel
-                                    {
-                                        Orientation = Orientation.Horizontal,
-                                        Spacing = 8,
-                                        Children = { _favButton, _openButton },
-                                    },
-                                    new Separator(),
-                                    _detailContent,
-                                },
-                            },
-                        },
-                    },
+                    new Separator(),
+                    _detailContent,
                 },
             },
+        };
+        Grid.SetColumn(detailPane, 2);
+
+        var splitter = new GridSplitter { Background = Brushes.Transparent };
+        Grid.SetColumn(splitter, 1);
+
+        var mainGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*, 8, 1.2*"),
+            Children = { _list, splitter, detailPane },
+        };
+
+        Content = new DockPanel
+        {
+            Children = { statBar, toolbar, mainGrid },
         };
 
         _list.SelectionChanged += async (_, _) =>

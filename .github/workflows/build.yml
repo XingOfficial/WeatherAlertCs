@@ -105,16 +105,24 @@ jobs:
 
   ios:
     name: iOS ipa (arm64, ad-hoc 签名)
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Select newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app || true
+          NEWEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $NEWEST"
+          sudo xcode-select -s "$NEWEST"
+          xcodebuild -version
+
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
-      - name: Install MAUI iOS workload
+      - name: Install MAUI workloads
         run: dotnet workload install maui
 
       - name: Publish iOS app
