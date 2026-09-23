@@ -109,19 +109,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select newest complete Xcode
+      - name: Select newest complete Xcode (resolve symlinks)
         run: |
           for CAND in $(ls -d /Applications/Xcode*.app | grep -v '^/Applications/Xcode.app$' | sort -rV); do
+            REAL=$(readlink -f "$CAND")
+            if [ "$REAL" != "$CAND" ]; then echo "$CAND is symlink -> $REAL"; fi
             OK=1
-            # SDK 设置文件必须真实存在（排除悬空符号链接）
-            [ -f "$CAND/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json" ] || OK=0
-            # clang / clang++ 均需可定位
-            DEVELOPER_DIR="$CAND" xcodebuild -sdk macosx -find clang >/dev/null 2>&1 || OK=0
-            DEVELOPER_DIR="$CAND" xcodebuild -sdk macosx -find clang++ >/dev/null 2>&1 || OK=0
-            echo "$CAND ok=$OK"
+            [ -f "$REAL/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json" ] || OK=0
+            DEVELOPER_DIR="$REAL" xcodebuild -sdk macosx -find clang >/dev/null 2>&1 || OK=0
+            DEVELOPER_DIR="$REAL" xcodebuild -sdk macosx -find clang++ >/dev/null 2>&1 || OK=0
+            echo "$REAL ok=$OK"
             if [ "$OK" = "1" ]; then
-              echo "Using $CAND"
-              sudo xcode-select -s "$CAND"
+              echo "Using $REAL"
+              sudo xcode-select -s "$REAL"
               break
             fi
           done
