@@ -141,9 +141,16 @@ jobs:
 
       - name: Package unsigned ipa (ad-hoc)
         run: |
-          APP=$(find out-ios -name "*.app" -type d | head -1)
+          APP=$(find out-ios src/WeatherAlert.Mobile/bin -name "*.app" -type d 2>/dev/null | head -1)
+          if [ -z "$APP" ]; then
+            echo "app bundle not found, dumping dirs:"
+            find out-ios -maxdepth 4 -type d 2>/dev/null | head -30
+            find src/WeatherAlert.Mobile/bin -maxdepth 6 -type d 2>/dev/null | head -30
+            exit 1
+          fi
           echo "Found app: $APP"
           codesign --force --deep -s - "$APP"
+          rm -rf Payload
           mkdir -p Payload
           cp -R "$APP" Payload/
           zip -qry WeatherAlert-ios-arm64.ipa Payload
