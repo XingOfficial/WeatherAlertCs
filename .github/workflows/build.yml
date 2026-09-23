@@ -112,7 +112,14 @@ jobs:
       - name: Select newest complete Xcode
         run: |
           for CAND in $(ls -d /Applications/Xcode*.app | grep -v '^/Applications/Xcode.app$' | sort -rV); do
-            if DEVELOPER_DIR="$CAND" xcodebuild -sdk macosx -find clang >/dev/null 2>&1; then
+            OK=1
+            # SDK 设置文件必须真实存在（排除悬空符号链接）
+            [ -f "$CAND/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json" ] || OK=0
+            # clang / clang++ 均需可定位
+            DEVELOPER_DIR="$CAND" xcodebuild -sdk macosx -find clang >/dev/null 2>&1 || OK=0
+            DEVELOPER_DIR="$CAND" xcodebuild -sdk macosx -find clang++ >/dev/null 2>&1 || OK=0
+            echo "$CAND ok=$OK"
+            if [ "$OK" = "1" ]; then
               echo "Using $CAND"
               sudo xcode-select -s "$CAND"
               break
