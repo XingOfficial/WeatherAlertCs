@@ -1,0 +1,10 @@
+Package: weather-alert
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: aarch64
+Maintainer: XingOfficial <XingOfficial@users.noreply.github.com>
+Description: 天气预警查询命令行工具（中央气象台数据，Termux/Android 终端）
+ Command-line tool to query China meteorological alerts
+ from the National Meteorological Centre (nmc.cn).
+ Built for Android terminal (Termux) with linux-bionic runtime.

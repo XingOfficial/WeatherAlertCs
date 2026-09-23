@@ -103,6 +103,49 @@ jobs:
           name: linux-debs
           path: weather-alert-*.deb
 
+  android-terminal:
+    name: Android 终端 (Termux, linux-bionic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish CLI for Termux arm64
+        run: |
+          dotnet publish src/WeatherAlert.Cli -c Release -r linux-bionic-arm64 \
+            --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -o out-termux-arm64
+
+      - name: Publish CLI for Termux arm (32-bit)
+        run: |
+          dotnet publish src/WeatherAlert.Cli -c Release -r linux-bionic-arm \
+            --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -o out-termux-arm
+
+      - name: Verify ELF
+        run: |
+          file out-termux-arm64/weather-alert out-termux-arm/weather-alert
+
+      - name: Build Termux deb (aarch64)
+        run: |
+          PREFIX=data/data/com.termux/files/usr
+          mkdir -p "pkg-termux/$PREFIX/bin" pkg-termux/DEBIAN
+          cp out-termux-arm64/weather-alert "pkg-termux/$PREFIX/bin/weather-alert"
+          chmod 755 "pkg-termux/$PREFIX/bin/weather-alert"
+          cp packaging/termux-control pkg-termux/DEBIAN/control
+          fakeroot dpkg-deb --build pkg-termux weather-alert-termux_1.0.0_aarch64.deb
+
+      - name: Upload Termux binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-terminal
+          path: |
+            weather-alert-termux_1.0.0_aarch64.deb
+            out-termux-arm64/weather-alert
+            out-termux-arm/weather-alert
+
   ios:
     name: iOS ipa (arm64, ad-hoc 签名)
     runs-on: macos-latest

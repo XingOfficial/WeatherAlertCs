@@ -10,6 +10,8 @@
 | `weather-alert-cli_1.0.0_amd64.deb` | 控制台 | Linux CLI：`weather-alert --help` |
 | `weather-alert-gui_1.0.0_amd64.deb` | Avalonia | Linux GUI，含桌面菜单项 |
 | `WeatherAlert-ios-arm64.ipa` | .NET MAUI | iPhone arm64，**ad-hoc 签名，需自行重签安装**（见下） |
+| `weather-alert-termux_1.0.0_aarch64.deb` | 控制台 | **Android 终端（Termux）**，`dpkg -i` 安装后 `weather-alert` |
+| `weather-alert` (linux-bionic arm64/arm) | 控制台 | Termux 裸二进制，直接 `./weather-alert` 运行 |
 
 ## 功能（全平台一致）
 
