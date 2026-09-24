@@ -336,9 +336,18 @@ public sealed class SyncDialog : Window
     {
         Title = "收藏云同步";
         Width = 460;
-        Padding = 14;
+        Padding = new Thickness(14);
         _server.Text = current.Server;
         _code.Text = current.Code;
+
+        var cancelButton = new Button { Content = "取消" };
+        cancelButton.Click += (_, _) => Close();
+        var okButton = new Button { Content = "保存并同步" };
+        okButton.Click += (_, _) => _tcs.TrySetResult(new Result(new SyncConfig
+        {
+            Server = _server.Text?.Trim() ?? "",
+            Code = _code.Text?.Trim() ?? "",
+        }));
 
         Content = new StackPanel
         {
@@ -354,16 +363,7 @@ public sealed class SyncDialog : Window
                     Orientation = Orientation.Horizontal,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     Spacing = 8,
-                    Children =
-                    {
-                        new Button { Content = "取消", Click += (_, _) => Close() },
-                        new Button { Content = "保存并同步", Click += (_, _) =>
-                            _tcs.TrySetResult(new Result(new SyncConfig
-                            {
-                                Server = _server.Text?.Trim() ?? "",
-                                Code = _code.Text?.Trim() ?? "",
-                            })) },
-                    },
+                    Children = { cancelButton, okButton },
                 },
             },
         };
