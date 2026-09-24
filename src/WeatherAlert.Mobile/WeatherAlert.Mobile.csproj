@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- macOS 上同时构建 Android + iOS；其他平台仅 Android（iOS workload 包不提供） -->
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))">net10.0-android;net10.0-ios</TargetFrameworks>
     <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('OSX'))">net10.0-android</TargetFrameworks>
     <OutputType>Exe</OutputType>

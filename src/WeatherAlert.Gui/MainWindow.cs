@@ -12,7 +12,6 @@ using WeatherAlert.Core;
 
 namespace WeatherAlert.Gui;
 
-/// <summary>主窗口：统计概览 + 筛选/搜索工具栏 + 列表/详情双栏</summary>
 public class MainWindow : Window
 {
     private readonly ListBox _list = new() { MinWidth = 380 };
@@ -22,7 +21,7 @@ public class MainWindow : Window
     private readonly ComboBox _level = Combo("等级");
     private readonly ToggleButton _favOnly = new() { Content = "只看收藏" };
     private readonly TextBlock _statText = new();
-    private readonly Button _favButton = new() { Content = "☆ 收藏" };
+    private readonly Button _favButton = new() { Content = "收藏" };
     private readonly Button _openButton = new() { Content = "浏览器打开" };
     private readonly TextBlock _detailTitle = new()
     { Text = "选择左侧预警查看详情", FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap, FontSize = 16 };
@@ -175,7 +174,7 @@ public class MainWindow : Window
 
     private Control FavMark(Alert a) => new TextBlock
     {
-        Text = _favs.IsFavorite(a.Id) ? "★" : "",
+        Text = _favs.IsFavorite(a.Id) ? "已收藏" : "",
         Foreground = Brushes.Orange,
         VerticalAlignment = VerticalAlignment.Center,
     };
@@ -247,7 +246,7 @@ public class MainWindow : Window
     }
 
     private void UpdateFavButton() =>
-        _favButton.Content = _selected != null && _favs.IsFavorite(_selected.Id) ? "★ 已收藏" : "☆ 收藏";
+        _favButton.Content = _selected != null && _favs.IsFavorite(_selected.Id) ? "已收藏" : "收藏";
 
     private void OpenBrowser()
     {
@@ -262,13 +261,12 @@ public class MainWindow : Window
             else if (OperatingSystem.IsMacOS())
                 Process.Start("open", url);
         }
-        catch { /* 忽略打开失败 */ }
+        catch { }
     }
 
     private static ReactiveCommand ReactiveCommand(Func<Task> f) => new(_ => f());
 }
 
-/// <summary>极简异步命令</summary>
 public sealed class ReactiveCommand : System.Windows.Input.ICommand
 {
     private readonly Func<object?, Task> _execute;
@@ -278,7 +276,6 @@ public sealed class ReactiveCommand : System.Windows.Input.ICommand
     public async void Execute(object? parameter) => await _execute(parameter);
 }
 
-/// <summary>收藏持久化（JSON 文件）</summary>
 public sealed class FavStore
 {
     private readonly string _path;

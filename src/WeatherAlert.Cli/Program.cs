@@ -2,7 +2,6 @@ using WeatherAlert.Core;
 
 namespace WeatherAlert.Cli;
 
-/// <summary>天气预警命令行工具：列表 / 筛选 / 搜索 / 详情</summary>
 internal static class Program
 {
     private const string Reset = "\x1b[0m";

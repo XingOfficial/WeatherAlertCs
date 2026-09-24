@@ -3,7 +3,6 @@ using Microsoft.Maui.Controls;
 
 namespace WeatherAlert.Mobile;
 
-/// <summary>预警详情页：正文 + 防御指南 + 收藏 / 分享 / 查看原文</summary>
 public class DetailPage : ContentPage
 {
     private readonly Alert _alert;
@@ -29,7 +28,7 @@ public class DetailPage : ContentPage
 
         _favLabel = new Label
         {
-            Text = favorite ? "★ 已收藏（点击切换）" : "☆ 收藏（点击切换）",
+            Text = favorite ? "已收藏（点击切换）" : "收藏（点击切换）",
             TextColor = Colors.Orange,
             FontSize = 14,
             HorizontalOptions = LayoutOptions.Start,
@@ -59,7 +58,7 @@ public class DetailPage : ContentPage
                                 Padding = 14,
                                 CornerRadius = 12,
                                 BackgroundColor = color,
-                                Content = new Label { Text = "⚠", TextColor = Colors.White, FontSize = 26 },
+                                Content = new Label { Text = "!", TextColor = Colors.White, FontSize = 26 },
                             },
                             new VerticalStackLayout
                             {
@@ -111,7 +110,7 @@ public class DetailPage : ContentPage
         var key = "fav_" + _alert.Id;
         var now = !Microsoft.Maui.Storage.Preferences.Get(key, false);
         Microsoft.Maui.Storage.Preferences.Set(key, now);
-        _favLabel.Text = now ? "★ 已收藏（点击切换）" : "☆ 收藏（点击切换）";
+        _favLabel.Text = now ? "已收藏（点击切换）" : "收藏（点击切换）";
         _onFavChanged();
     }
 

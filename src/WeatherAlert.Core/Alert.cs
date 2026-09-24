@@ -2,7 +2,6 @@ using System.Text.RegularExpressions;
 
 namespace WeatherAlert.Core;
 
-/// <summary>单条气象预警（类型/等级从标题解析）</summary>
 public sealed record Alert(
     string Id,
     string Title,
@@ -39,10 +38,8 @@ public sealed record Alert(
     }
 }
 
-/// <summary>全国预警统计（按等级）</summary>
 public sealed record AlertStat(int Total, int Red, int Orange, int Yellow, int Blue);
 
-/// <summary>一页预警列表 + 统计</summary>
 public sealed record AlertsPage(IReadOnlyList<Alert> Alerts, AlertStat? Stat);
 
 public static class Provinces

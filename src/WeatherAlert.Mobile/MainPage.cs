@@ -3,7 +3,6 @@ using Microsoft.Maui.Controls;
 
 namespace WeatherAlert.Mobile;
 
-/// <summary>首页：统计概览 + 搜索 + 预警列表 + 筛选 + 收藏</summary>
 public class MainPage : ContentPage
 {
     private readonly Label _statLabel = new() { FontSize = 13 };
@@ -127,7 +126,7 @@ public class MainPage : ContentPage
         };
         var fav = new Label
         {
-            Text = IsFav(a) ? "★" : "",
+            Text = IsFav(a) ? "已收藏" : "",
             TextColor = Colors.Orange,
             FontSize = 16,
             VerticalOptions = LayoutOptions.Center,
