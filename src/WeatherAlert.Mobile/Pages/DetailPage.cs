@@ -107,11 +107,20 @@ public class DetailPage : ContentPage
 
     private void ToggleFav()
     {
-        var key = "fav_" + _alert.Id;
-        var now = !Microsoft.Maui.Storage.Preferences.Get(key, false);
-        Microsoft.Maui.Storage.Preferences.Set(key, now);
+        var now = MainPage.Store.Toggle(_alert.Id);
         _favLabel.Text = now ? "已收藏（点击切换）" : "收藏（点击切换）";
         _onFavChanged();
+        _ = PushSyncAsync(); // 后台推送云端
+    }
+
+    private static async Task PushSyncAsync()
+    {
+        try
+        {
+            var cfg = FavSync.LoadConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
+            if (cfg.Enabled) await FavSync.PushMergeAsync(cfg, MainPage.Store.Ids);
+        }
+        catch { }
     }
 
     private async Task ShareAsync()

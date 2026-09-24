@@ -5,6 +5,10 @@ namespace WeatherAlert.Mobile;
 
 public class MainPage : ContentPage
 {
+    // 收藏存储（与云同步共用 Core FavStore）
+    internal static readonly FavStore Store =
+        new(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
+
     private readonly Label _statLabel = new() { FontSize = 13 };
     private readonly SearchBar _searchBar = new() { Placeholder = "搜索地区 / 类型", Margin = new Thickness(12, 4) };
     private readonly VerticalStackLayout _listHost = new() { Spacing = 6, Padding = new Thickness(8, 4) };
@@ -22,8 +26,11 @@ public class MainPage : ContentPage
         filterItem.Clicked += OnFilter;
         var favItem = new ToolbarItem { Text = "收藏" };
         favItem.Clicked += OnToggleFavFilter;
+        var syncItem = new ToolbarItem { Text = "云同步" };
+        syncItem.Clicked += OnSync;
         ToolbarItems.Add(filterItem);
         ToolbarItems.Add(favItem);
+        ToolbarItems.Add(syncItem);
 
         var frame = new Frame
         {
@@ -169,8 +176,36 @@ public class MainPage : ContentPage
 
     private void OnFavChanged() => Render();
 
-    private static bool IsFav(Alert a) =>
-        Microsoft.Maui.Storage.Preferences.Get("fav_" + a.Id, false);
+    private static bool IsFav(Alert a) => Store.IsFavorite(a.Id);
+
+    private async void OnSync(object? sender, EventArgs e)
+    {
+        var cfg = FavSync.LoadConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
+        var server = await DisplayPromptAsync("收藏云同步", "服务器地址（weather-alert-web 站点根地址）：",
+            initialValue: cfg.Server);
+        if (server is null) return;
+        var code = await DisplayPromptAsync("收藏云同步", "同步码（与网页/其他设备一致即可互通）：",
+            initialValue: cfg.Code);
+        if (code is null) return;
+
+        cfg = new SyncConfig { Server = server.Trim(), Code = code.Trim() };
+        if (!cfg.Enabled || cfg.Code.Length < 4)
+        {
+            await DisplayAlert("提示", "服务器需以 http(s):// 开头，同步码至少 4 位", "确定");
+            return;
+        }
+        FavSync.SaveConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, cfg);
+        try
+        {
+            var count = await FavSync.SyncNowAsync(cfg, Store);
+            await DisplayAlert("云同步", $"同步完成，共 {count} 条收藏", "确定");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("云同步失败", ex.Message, "确定");
+        }
+        Render();
+    }
 
     private void OnToggleFavFilter(object? sender, EventArgs e)
     {

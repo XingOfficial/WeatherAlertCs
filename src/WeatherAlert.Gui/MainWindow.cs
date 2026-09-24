@@ -30,7 +30,12 @@ public class MainWindow : Window
 
     private readonly List<Alert> _all = [];
     private Alert? _selected;
-    private readonly FavStore _favs = new();
+    private readonly FavStore _favs = new(
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".weather-alert"));
+    private readonly Button _syncButton = new() { Content = "云同步" };
+
+    private static readonly string ConfigDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".weather-alert");
 
     public MainWindow()
     {
@@ -59,7 +64,7 @@ public class MainWindow : Window
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 8,
-                Children = { _search, _province, _type, _level, _favOnly, refreshButton },
+                Children = { _search, _province, _type, _level, _favOnly, _syncButton, refreshButton },
             },
         };
         DockPanel.SetDock(toolbar, Dock.Top);
@@ -110,6 +115,7 @@ public class MainWindow : Window
             c.SelectionChanged += async (_, _) => await LoadAsync();
         _favButton.Click += (_, _) => ToggleFavorite();
         _openButton.Click += (_, _) => OpenBrowser();
+        _syncButton.Click += OnSyncClick;
 
         _ = LoadAsync();
     }
@@ -243,6 +249,47 @@ public class MainWindow : Window
         _favs.Toggle(_selected.Id);
         UpdateFavButton();
         ApplyFilter();
+        _ = SyncInBackground(); // 收藏变化后台推送云端
+    }
+
+    private async Task SyncInBackground()
+    {
+        try
+        {
+            var cfg = FavSync.LoadConfig(ConfigDir);
+            if (cfg.Enabled) await FavSync.PushMergeAsync(cfg, _favs.Ids);
+        }
+        catch { }
+    }
+
+    private async void OnSyncClick(object? sender, EventArgs e)
+    {
+        var cfg = FavSync.LoadConfig(ConfigDir);
+        var dialog = new SyncDialog(cfg);
+        var result = await dialog.ShowDialog<SyncDialog.Result?>(this);
+        if (result is null) return;
+        cfg = result.Config;
+        if (!cfg.Enabled)
+        {
+            Title = "云同步：服务器或同步码无效";
+            return;
+        }
+        FavSync.SaveConfig(ConfigDir, cfg);
+        _syncButton.IsEnabled = false;
+        try
+        {
+            var count = await FavSync.SyncNowAsync(cfg, _favs);
+            Title = $"云同步完成，共 {count} 条收藏";
+        }
+        catch (Exception ex)
+        {
+            Title = $"云同步失败：{ex.Message}";
+        }
+        finally
+        {
+            _syncButton.IsEnabled = true;
+        }
+        ApplyFilter();
     }
 
     private void UpdateFavButton() =>
@@ -276,28 +323,55 @@ public sealed class ReactiveCommand : System.Windows.Input.ICommand
     public async void Execute(object? parameter) => await _execute(parameter);
 }
 
-public sealed class FavStore
+/// <summary>云同步设置对话框：填服务器地址与同步码</summary>
+public sealed class SyncDialog : Window
 {
-    private readonly string _path;
-    private HashSet<string> _ids;
+    private readonly TextBox _server = new() { Watermark = "https://你的站点（如 https://xxx.zrok.io）" };
+    private readonly TextBox _code = new() { Watermark = "同步码（4-20 位字母数字）" };
+    private readonly TaskCompletionSource<Result?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public FavStore()
+    public sealed record Result(SyncConfig Config);
+
+    public SyncDialog(SyncConfig current)
     {
-        var dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".weather-alert");
-        Directory.CreateDirectory(dir);
-        _path = Path.Combine(dir, "favorites.json");
-        _ids = File.Exists(_path)
-            ? JsonSerializer.Deserialize<HashSet<string>>(File.ReadAllText(_path)) ?? []
-            : [];
+        Title = "收藏云同步";
+        Width = 460;
+        Padding = 14;
+        _server.Text = current.Server;
+        _code.Text = current.Code;
+
+        Content = new StackPanel
+        {
+            Spacing = 10,
+            Children =
+            {
+                new TextBlock { Text = "服务器地址（weather-alert-web 站点根地址）" },
+                _server,
+                new TextBlock { Text = "同步码（与手机网页/其他设备保持一致即可互通）" },
+                _code,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 8,
+                    Children =
+                    {
+                        new Button { Content = "取消", Click += (_, _) => Close() },
+                        new Button { Content = "保存并同步", Click += (_, _) =>
+                            _tcs.TrySetResult(new Result(new SyncConfig
+                            {
+                                Server = _server.Text?.Trim() ?? "",
+                                Code = _code.Text?.Trim() ?? "",
+                            })) },
+                    },
+                },
+            },
+        };
     }
 
-    public bool IsFavorite(string id) => _ids.Contains(id);
-
-    public void Toggle(string id)
+    protected override void OnClosing(WindowClosingEventArgs e)
     {
-        if (!_ids.Add(id)) _ids.Remove(id);
-        File.WriteAllText(_path, JsonSerializer.Serialize(_ids));
+        _tcs.TrySetResult(null);
+        base.OnClosing(e);
     }
 }
