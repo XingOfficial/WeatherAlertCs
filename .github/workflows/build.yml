@@ -28,7 +28,7 @@ jobs:
         run: |
           dotnet publish src/WeatherAlert.Mobile -f net10.0-android -c Release -r android-arm64 \
             -p:AndroidKeyStore=true -p:AndroidSigningKeyStore=$GITHUB_WORKSPACE/weatheralert.keystore \
-            -p:AndroidSigningKeyStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -p:AndroidSigningStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} \
             -p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} \
             -o out/arm64
@@ -38,7 +38,7 @@ jobs:
         run: |
           dotnet publish src/WeatherAlert.Mobile -f net10.0-android -c Release -r android-arm \
             -p:AndroidKeyStore=true -p:AndroidSigningKeyStore=$GITHUB_WORKSPACE/weatheralert.keystore \
-            -p:AndroidSigningKeyStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -p:AndroidSigningStorePass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -p:AndroidSigningKeyAlias=${{ secrets.ANDROID_KEY_ALIAS }} \
             -p:AndroidSigningKeyPass=${{ secrets.ANDROID_KEY_PASSWORD }} \
             -o out/arm
