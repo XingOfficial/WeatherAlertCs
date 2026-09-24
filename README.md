@@ -1,42 +1,51 @@
-# 天气预警查询（C# 多平台）
+# WeatherAlert
 
-同一核心库（`WeatherAlert.Core`：模型 + 中央气象台 nmc.cn 接口），六种平台产物，全部由 GitHub Actions 云端编译。
+基于中央气象台（nmc.cn）公开数据的天气预警查询工具，一个核心库（`WeatherAlert.Core`）覆盖多个平台。
 
-| 产物 | 技术 | 说明 |
+> 数据来源：中央气象台公开接口，仅供个人参考，请以官方渠道发布的信息为准。
+
+## 支持平台
+
+| 平台 | 技术 | 形态 |
 |---|---|---|
-| `WeatherAlert-arm64-v8a.apk` | .NET MAUI | Android 8.0+（minSdk 24）arm64 设备 |
-| `WeatherAlert-armeabi-v7a.apk` | .NET MAUI | 32 位 ARM 设备（注：经典 armeabi 已被 Android 废弃，提供的是 armeabi-v7a） |
-| `WeatherAlert-windows-x64.exe` | Avalonia | Windows 10/11 x64 单文件免安装 |
-| `weather-alert-cli_1.0.0_amd64.deb` | 控制台 | Linux CLI：`weather-alert --help` |
-| `weather-alert-gui_1.0.0_amd64.deb` | Avalonia | Linux GUI，含桌面菜单项 |
-| `WeatherAlert-ios-arm64.ipa` | .NET MAUI | iPhone arm64，**ad-hoc 签名，需自行重签安装**（见下） |
-| `weather-alert-termux_1.0.0_aarch64.deb` | 控制台 | **Android 终端（Termux）**，`dpkg -i` 安装后 `weather-alert` |
-| `weather-alert` (linux-bionic arm64/arm) | 控制台 | Termux 裸二进制，直接 `./weather-alert` 运行 |
+| Android 8.0+ | .NET MAUI | APK（arm64-v8a / armeabi-v7a） |
+| Windows 10/11 | Avalonia | x64 单文件免安装 exe |
+| Linux | Avalonia / 控制台 | GUI deb（含桌面菜单项）/ CLI deb |
+| Android 终端（Termux） | 控制台 | deb 包或裸二进制 |
+| iOS | .NET MAUI | ipa（ad-hoc 签名，需自行重签） |
 
-## 功能（全平台一致）
+## 功能
 
-- 全国实时预警列表，按等级（红>橙>黄>蓝）排序，色条/徽章
-- 全国统计概览（总数 + 四级数量）
-- 筛选：省份 × 预警类型 × 等级；关键词搜索
-- 预警详情（正文 + 防御指南）、收藏（持久化）、分享（移动端）、浏览器打开原文
+- 全国实时预警列表，按等级（红 / 橙 / 黄 / 蓝）排序，色条与徽章标识
+- 全国统计概览（预警总数及各等级数量）
+- 省份 × 预警类型 × 等级组合筛选，支持关键词搜索
+- 预警详情：正文内容与防御指南
+- 收藏（本地持久化）、分享（移动端）、跳转浏览器查看原文
 
-## CI
+## 构建
 
-推送到 `main` 自动触发，产物在 Actions → Artifacts 下载。
+需要 .NET 10 SDK，安装对应 workload 后执行：
 
-## iOS ipa 说明
+```bash
+dotnet workload install maui          # 移动端
+dotnet publish src/WeatherAlert.Mobile -f net10.0-android -c Release -r android-arm64
+dotnet publish src/WeatherAlert.Gui -c Release -r win-x64 --self-contained
+dotnet publish src/WeatherAlert.Cli -c Release -r linux-x64 --self-contained
+```
 
-GitHub Actions 无 Apple 开发者证书，ipa 为 ad-hoc 签名，安装方式：
-- 个人证书重签：用 [Sideloadly](https://sideloadly.io/) / AltStore 登录自己的 Apple ID 重签后安装
-- 或将仓库中 `src/WeatherAlert.Mobile` 用自己的签名配置在 macOS 上重新 `dotnet publish`
+推送至 `main` 分支会自动触发 GitHub Actions 构建，全平台产物可在 Actions 的 Artifacts 中下载。
 
 ## 项目结构
 
 ```
 src/
-├── WeatherAlert.Core/        # 模型 + API（共享）
-├── WeatherAlert.Cli/         # Linux CLI deb
-├── WeatherAlert.Gui/         # Windows exe / Linux GUI deb（Avalonia）
-└── WeatherAlert.Mobile/      # Android APK / iOS ipa（MAUI）
-packaging/                    # deb control / desktop 文件
+├── WeatherAlert.Core/        预警模型与中央气象台 API（各平台共享）
+├── WeatherAlert.Cli/         命令行版本
+├── WeatherAlert.Gui/         桌面版本（Windows / Linux）
+└── WeatherAlert.Mobile/      移动版本（Android / iOS）
+packaging/                    deb 打包与桌面入口文件
 ```
+
+## License
+
+MIT
