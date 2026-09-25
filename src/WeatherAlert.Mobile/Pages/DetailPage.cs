@@ -115,9 +115,20 @@ public class DetailPage : ContentPage
 
     private static async Task PushSyncAsync()
     {
+        var dir = Microsoft.Maui.Storage.FileSystem.AppDataDirectory;
         try
         {
-            var cfg = FavSync.LoadConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
+            var session = AccountSync.Load(dir); // 账号优先
+            if (session.Valid)
+            {
+                await AccountSync.PushMergeAsync(session.Server, session, MainPage.Store.Ids);
+                return;
+            }
+        }
+        catch { }
+        try
+        {
+            var cfg = FavSync.LoadConfig(dir); // 兼容旧的同步码模式
             if (cfg.Enabled) await FavSync.PushMergeAsync(cfg, MainPage.Store.Ids);
         }
         catch { }

@@ -126,3 +126,125 @@ public static class FavSync
             .ToList();
     }
 }
+
+/// <summary>账号会话（token 鉴权）</summary>
+public sealed class AccountSession
+{
+    public string Server { get; set; } = "";
+    public string Token { get; set; } = "";
+    public string User { get; set; } = "";
+    public bool Valid => Token != "";
+}
+
+public static class AccountSync
+{
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
+
+    private static string Base(string server) =>
+        (server.Trim() == "" ? SyncConfig.DefaultServer : server).Trim().TrimEnd('/');
+
+    public static string ConfigPath(string dir) => Path.Combine(dir, "account.json");
+
+    public static AccountSession Load(string dir) =>
+        File.Exists(ConfigPath(dir))
+            ? JsonSerializer.Deserialize<AccountSession>(File.ReadAllText(ConfigPath(dir))) ?? new AccountSession()
+            : new AccountSession();
+
+    public static void Save(string dir, AccountSession s)
+    {
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(ConfigPath(dir), JsonSerializer.Serialize(s));
+    }
+
+    private static async Task<JsonElement> PostAsync(string url, Dictionary<string, string> form, CancellationToken ct)
+    {
+        var resp = await Http.PostAsync(url, new FormUrlEncodedContent(form), ct);
+        var text = await resp.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(text);
+        var root = doc.RootElement;
+        if (!root.TryGetProperty("ok", out var ok) || ok.ValueKind != JsonValueKind.True)
+        {
+            var msg = root.TryGetProperty("error", out var e) ? e.GetString() : null;
+            throw new InvalidOperationException(msg ?? "接口返回异常");
+        }
+        return root.Clone();
+    }
+
+    private static AccountSession FromJson(string server, JsonElement root)
+    {
+        return new AccountSession
+        {
+            Server = server,
+            Token = root.TryGetProperty("token", out var t) ? t.GetString() ?? "" : "",
+            User = root.TryGetProperty("user", out var u) ? u.GetString() ?? "" : "",
+        };
+    }
+
+    public static Task<AccountSession> SignupAsync(string server, string type, string name, string password, string email, string authcode, CancellationToken ct = default)
+    {
+        var form = new Dictionary<string, string>
+        {
+            ["action"] = "signup", ["type"] = type,
+        };
+        if (type == "emailauthcode")
+        {
+            form["email"] = email;
+            form["authcode"] = authcode;
+        }
+        else
+        {
+            form["name"] = name;
+            form["password"] = password;
+        }
+        return PostThenSessionAsync(server, form, ct);
+    }
+
+    public static Task<AccountSession> LoginAsync(string server, string name, string password, string email, string authcode, CancellationToken ct = default)
+    {
+        var form = new Dictionary<string, string> { ["action"] = "login" };
+        if (email != "" && authcode != "")
+        {
+            form["email"] = email;
+            form["authcode"] = authcode;
+        }
+        else
+        {
+            form["name"] = name;
+            form["password"] = password;
+        }
+        return PostThenSessionAsync(server, form, ct);
+    }
+
+    public static async Task SendAuthCodeAsync(string server, string email, CancellationToken ct = default)
+    {
+        await PostAsync(Base(server) + "/api/account.php", new Dictionary<string, string>
+        {
+            ["action"] = "sendcode", ["email"] = email,
+        }, ct);
+    }
+
+    private static async Task<AccountSession> PostThenSessionAsync(string server, Dictionary<string, string> form, CancellationToken ct)
+    {
+        var root = await PostAsync(Base(server) + "/api/account.php", form, ct);
+        return FromJson(server, root);
+    }
+
+    /// <summary>账号收藏 union 合并：推送本地，返回合并结果</summary>
+    public static async Task<List<string>> PushMergeAsync(string server, AccountSession session, IEnumerable<string> localIds, CancellationToken ct = default)
+    {
+        var payload = JsonSerializer.Serialize(new { token = session.Token, ids = localIds });
+        var resp = await Http.PostAsync(Base(server) + "/api/userfavs",
+            new StringContent(payload, Encoding.UTF8, "application/json"), ct);
+        resp.EnsureSuccessStatusCode();
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        return Parse(doc.RootElement);
+    }
+
+    /// <summary>完整账号同步：推送本地合并，再覆盖本地</summary>
+    public static async Task<int> SyncNowAsync(string server, AccountSession session, FavStore store, CancellationToken ct = default)
+    {
+        var merged = await PushMergeAsync(server, session, store.Ids, ct);
+        store.Replace(merged);
+        return merged.Count;
+    }
+}

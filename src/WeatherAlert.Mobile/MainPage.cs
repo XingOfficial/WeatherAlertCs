@@ -26,8 +26,8 @@ public class MainPage : ContentPage
         filterItem.Clicked += OnFilter;
         var favItem = new ToolbarItem { Text = "收藏" };
         favItem.Clicked += OnToggleFavFilter;
-        var syncItem = new ToolbarItem { Text = "云同步" };
-        syncItem.Clicked += OnSync;
+        var syncItem = new ToolbarItem { Text = "账号" };
+        syncItem.Clicked += OnAccount;
         ToolbarItems.Add(filterItem);
         ToolbarItems.Add(favItem);
         ToolbarItems.Add(syncItem);
@@ -178,31 +178,97 @@ public class MainPage : ContentPage
 
     private static bool IsFav(Alert a) => Store.IsFavorite(a.Id);
 
-    private async void OnSync(object? sender, EventArgs e)
+    private async void OnAccount(object? sender, EventArgs e)
     {
-        var cfg = FavSync.LoadConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
-        var code = await DisplayPromptAsync("收藏云同步",
-            "设置同步码（与网页/其他设备一致即可互通，4-20 位字母数字）：",
-            initialValue: cfg.Code);
-        if (code is null) return;
+        var dir = Microsoft.Maui.Storage.FileSystem.AppDataDirectory;
+        var session = AccountSync.Load(dir);
 
-        cfg = new SyncConfig { Code = code.Trim() };
-        if (!cfg.Enabled)
+        if (session.Valid)
         {
-            await DisplayAlert("提示", "同步码至少 4 位字母数字", "确定");
+            var act = await DisplayActionSheet($"账号: {session.User}", "取消", null, "同步收藏", "退出登录");
+            if (act == "同步收藏")
+            {
+                try
+                {
+                    var count = await AccountSync.SyncNowAsync(session.Server, session, Store);
+                    await DisplayAlert("账号同步", $"同步完成，共 {count} 条收藏", "确定");
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("同步失败", ex.Message, "确定");
+                }
+                Render();
+            }
+            else if (act == "退出登录")
+            {
+                AccountSync.Save(dir, new AccountSession());
+                await DisplayAlert("账号", "已退出登录", "确定");
+            }
             return;
         }
-        FavSync.SaveConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, cfg);
+
+        var choice = await DisplayActionSheet("账号", "取消", null,
+            "登录（用户名+密码）", "登录（邮箱验证码）", "注册（用户名+密码）", "注册（邮箱验证码）");
         try
         {
-            var count = await FavSync.SyncNowAsync(cfg, Store);
-            await DisplayAlert("云同步", $"同步完成，共 {count} 条收藏", "确定");
+            AccountSession? s = null;
+            switch (choice)
+            {
+                case "登录（用户名+密码）":
+                    {
+                        var ln = await DisplayPromptAsync("登录", "用户名：");
+                        if (ln is null) return;
+                        var lp = await DisplayPromptAsync("登录", "密码：");
+                        if (lp is null) return;
+                        s = await AccountSync.LoginAsync("", ln, lp, "", "");
+                        break;
+                    }
+                case "登录（邮箱验证码）":
+                    {
+                        var le = await DisplayPromptAsync("登录", "邮箱：");
+                        if (le is null) return;
+                        var lc = await SendCodeAndPrompt(le);
+                        if (lc is null) return;
+                        s = await AccountSync.LoginAsync("", "", "", le, lc);
+                        break;
+                    }
+                case "注册（用户名+密码）":
+                    {
+                        var rn = await DisplayPromptAsync("注册", "用户名（字母/数字/_.@-）：");
+                        if (rn is null) return;
+                        var rp = await DisplayPromptAsync("注册", "密码：");
+                        if (rp is null) return;
+                        s = await AccountSync.SignupAsync("", "namepassword", rn, rp, "", "");
+                        break;
+                    }
+                case "注册（邮箱验证码）":
+                    {
+                        var re = await DisplayPromptAsync("注册", "邮箱：");
+                        if (re is null) return;
+                        var rac = await SendCodeAndPrompt(re);
+                        if (rac is null) return;
+                        s = await AccountSync.SignupAsync("", "emailauthcode", "", "", re, rac);
+                        break;
+                    }
+                default:
+                    return;
+            }
+            AccountSync.Save(dir, s);
+            var count = await AccountSync.SyncNowAsync(s.Server, s, Store);
+            await DisplayAlert("账号", $"已登录 {s.User}，同步完成共 {count} 条收藏", "确定");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("云同步失败", ex.Message, "确定");
+            await DisplayAlert("失败", ex.Message, "确定");
         }
         Render();
+    }
+
+    private async Task<string?> SendCodeAndPrompt(string email)
+    {
+        await AccountSync.SendAuthCodeAsync("", email);
+        return await DisplayPromptAsync("验证码",
+            $"验证码已发送至 {email}\n（Termux 无邮件通道时，验证码由服务端直接回显在浏览器控制台/响应中）");
     }
 
     private void OnToggleFavFilter(object? sender, EventArgs e)
