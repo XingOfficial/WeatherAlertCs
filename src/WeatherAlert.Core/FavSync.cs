@@ -39,18 +39,21 @@ public sealed class FavStore
     private void Save() => File.WriteAllText(_path, JsonSerializer.Serialize(_ids));
 }
 
-/// <summary>云同步配置（服务器地址 + 同步码）</summary>
+/// <summary>云同步配置（同步码；服务器地址有默认值，一般无需填写）</summary>
 public sealed class SyncConfig
 {
+    public const string DefaultServer = "https://xingclouddisk.share.zrok.io/weather-alert-web";
+
     public string Server { get; set; } = "";
     public string Code { get; set; } = "";
 
-    public bool Enabled =>
-        Server.StartsWith("http://") || Server.StartsWith("https://");
+    public bool Enabled => Code.Trim().Length >= 4; // 服务器有默认值，只看同步码
 
     public string Normalize()
     {
-        var s = Server.Trim().TrimEnd('/');
+        var s = Server.Trim();
+        if (s == "") s = DefaultServer;
+        s = s.TrimEnd('/');
         return s.EndsWith("/api/favs") ? s[..^"/api/favs".Length] : s;
     }
 }

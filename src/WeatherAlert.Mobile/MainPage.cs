@@ -181,17 +181,15 @@ public class MainPage : ContentPage
     private async void OnSync(object? sender, EventArgs e)
     {
         var cfg = FavSync.LoadConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
-        var server = await DisplayPromptAsync("收藏云同步", "服务器地址（weather-alert-web 站点根地址）：",
-            initialValue: cfg.Server);
-        if (server is null) return;
-        var code = await DisplayPromptAsync("收藏云同步", "同步码（与网页/其他设备一致即可互通）：",
+        var code = await DisplayPromptAsync("收藏云同步",
+            "设置同步码（与网页/其他设备一致即可互通，4-20 位字母数字）：",
             initialValue: cfg.Code);
         if (code is null) return;
 
-        cfg = new SyncConfig { Server = server.Trim(), Code = code.Trim() };
-        if (!cfg.Enabled || cfg.Code.Length < 4)
+        cfg = new SyncConfig { Code = code.Trim() };
+        if (!cfg.Enabled)
         {
-            await DisplayAlert("提示", "服务器需以 http(s):// 开头，同步码至少 4 位", "确定");
+            await DisplayAlert("提示", "同步码至少 4 位字母数字", "确定");
             return;
         }
         FavSync.SaveConfig(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, cfg);

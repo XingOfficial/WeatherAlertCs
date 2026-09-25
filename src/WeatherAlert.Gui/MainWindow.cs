@@ -271,7 +271,7 @@ public class MainWindow : Window
         cfg = result.Config;
         if (!cfg.Enabled)
         {
-            Title = "云同步：服务器或同步码无效";
+            Title = "云同步：同步码至少 4 位字母数字";
             return;
         }
         FavSync.SaveConfig(ConfigDir, cfg);
@@ -323,10 +323,9 @@ public sealed class ReactiveCommand : System.Windows.Input.ICommand
     public async void Execute(object? parameter) => await _execute(parameter);
 }
 
-/// <summary>云同步设置对话框：填服务器地址与同步码</summary>
+/// <summary>云同步设置对话框：填同步码</summary>
 public sealed class SyncDialog : Window
 {
-    private readonly TextBox _server = new() { Watermark = "https://你的站点（如 https://xxx.zrok.io）" };
     private readonly TextBox _code = new() { Watermark = "同步码（4-20 位字母数字）" };
     private readonly TaskCompletionSource<Result?> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -335,9 +334,8 @@ public sealed class SyncDialog : Window
     public SyncDialog(SyncConfig current)
     {
         Title = "收藏云同步";
-        Width = 460;
+        Width = 420;
         Padding = new Thickness(14);
-        _server.Text = current.Server;
         _code.Text = current.Code;
 
         var cancelButton = new Button { Content = "取消" };
@@ -345,7 +343,6 @@ public sealed class SyncDialog : Window
         var okButton = new Button { Content = "保存并同步" };
         okButton.Click += (_, _) => _tcs.TrySetResult(new Result(new SyncConfig
         {
-            Server = _server.Text?.Trim() ?? "",
             Code = _code.Text?.Trim() ?? "",
         }));
 
@@ -354,8 +351,6 @@ public sealed class SyncDialog : Window
             Spacing = 10,
             Children =
             {
-                new TextBlock { Text = "服务器地址（weather-alert-web 站点根地址）" },
-                _server,
                 new TextBlock { Text = "同步码（与手机网页/其他设备保持一致即可互通）" },
                 _code,
                 new StackPanel
