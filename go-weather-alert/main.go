@@ -2,9 +2,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -84,7 +86,54 @@ type apiResp struct {
 	} `json:"data"`
 }
 
-var client = &http.Client{Timeout: 20 * time.Second}
+// makeDNSResolver: Android/Termux 上 Go 纯解析器读不到系统 DNS（/etc/resolv.conf 缺失或指向 ::1），
+// 这里手动指定 DNS：优先 Termux 的 $PREFIX/etc/resolv.conf，兜底公共 DNS
+func makeDNSResolver() *net.Resolver {
+	var servers []string
+	for _, p := range []string{"/etc/resolv.conf", os.Getenv("PREFIX") + "/etc/resolv.conf"} {
+		if data, err := os.ReadFile(p); err == nil {
+			for _, line := range strings.Split(string(data), "\n") {
+				if strings.HasPrefix(strings.TrimSpace(line), "nameserver ") {
+					if ns := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "nameserver ")); ns != "" && ns != "::1" && ns != "127.0.0.1" {
+						servers = append(servers, ns)
+					}
+				}
+			}
+			if len(servers) > 0 {
+				break
+			}
+		}
+	}
+	if len(servers) == 0 {
+		servers = []string{"223.5.5.5", "119.29.29.29", "8.8.8.8"}
+	}
+	return &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			d := net.Dialer{Timeout: 5 * time.Second}
+			var lastErr error
+			for _, ns := range servers {
+				if c, err := d.DialContext(ctx, "udp", net.JoinHostPort(ns, "53")); err == nil {
+					return c, nil
+				} else {
+					lastErr = err
+				}
+			}
+			return nil, lastErr
+		},
+	}
+}
+
+var client = &http.Client{
+	Timeout: 20 * time.Second,
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:  10 * time.Second,
+			Resolver: makeDNSResolver(),
+		}).DialContext,
+	},
+}
 
 func httpGet(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
