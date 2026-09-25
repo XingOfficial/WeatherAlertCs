@@ -1,0 +1,9 @@
+Package: weather-alert-go
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: aarch64
+Maintainer: XingOfficial <XingOfficial@users.noreply.github.com>
+Description: 天气预警查询命令行工具（Go 零依赖静态版，Termux/Android 终端）
+ Static Go binary with zero runtime dependencies.
+ Queries China meteorological alerts from nmc.cn.

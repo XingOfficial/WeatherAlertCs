@@ -156,7 +156,7 @@ jobs:
 
   publish-apt-repo:
     name: 发布 apt 源（GitHub Pages）
-    needs: [android-terminal, linux]
+    needs: [android-terminal, linux, go-termux]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -176,6 +176,7 @@ jobs:
           cp dl/android-terminal/weather-alert-termux_1.0.0_aarch64.deb repo/
           cp dl/linux-debs/weather-alert-cli_1.0.0_amd64.deb repo/
           cp dl/linux-debs/weather-alert-gui_1.0.0_amd64.deb repo/
+          cp dl/go-termux/weather-alert-go_1.0.0_aarch64.deb repo/
           cd repo
           dpkg-scanpackages --multiversion . > Packages
           gzip -k9f Packages
@@ -263,6 +264,15 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o weather-alert
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o weather-alert-x64
 
+      - name: Build deb (aarch64)
+        run: |
+          PREFIX=data/data/com.termux/files/usr
+          mkdir -p "pkg-go/$PREFIX/bin" pkg-go/DEBIAN
+          cp go-weather-alert/weather-alert "pkg-go/$PREFIX/bin/weather-alert-go"
+          chmod 755 "pkg-go/$PREFIX/bin/weather-alert-go"
+          cp packaging/go-control pkg-go/DEBIAN/control
+          fakeroot dpkg-deb --build pkg-go weather-alert-go_1.0.0_aarch64.deb
+
       - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
@@ -270,3 +280,4 @@ jobs:
           path: |
             go-weather-alert/weather-alert
             go-weather-alert/weather-alert-x64
+            weather-alert-go_1.0.0_aarch64.deb
