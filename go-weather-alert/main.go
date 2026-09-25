@@ -3,6 +3,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -124,6 +126,33 @@ func makeDNSResolver() *net.Resolver {
 	}
 }
 
+// loadRootCAs: Android/Termux 上 Go 找不到系统 CA 证书路径，手动加载：
+// 优先 Termux 的 $PREFIX/etc/tls/cert.pem，其次常见 Linux 路径，最后 Android 系统证书目录
+func loadRootCAs() *x509.CertPool {
+	pool := x509.NewCertPool()
+	for _, p := range []string{
+		os.Getenv("PREFIX") + "/etc/tls/cert.pem",
+		"/etc/ssl/certs/ca-certificates.crt",
+		"/etc/pki/tls/certs/ca-bundle.crt",
+		"/usr/local/share/certs/ca-root-nss.crt",
+	} {
+		if data, err := os.ReadFile(p); err == nil && pool.AppendCertsFromPEM(data) {
+			return pool
+		}
+	}
+	if entries, err := os.ReadDir("/system/etc/security/cacerts"); err == nil {
+		for _, e := range entries {
+			if data, err := os.ReadFile("/system/etc/security/cacerts/" + e.Name()); err == nil {
+				pool.AppendCertsFromPEM(data)
+			}
+		}
+		if len(pool.Subjects()) > 0 {
+			return pool
+		}
+	}
+	return nil // 找不到任何证书时用 Go 内置默认
+}
+
 var client = &http.Client{
 	Timeout: 20 * time.Second,
 	Transport: &http.Transport{
@@ -132,6 +161,10 @@ var client = &http.Client{
 			Timeout:  10 * time.Second,
 			Resolver: makeDNSResolver(),
 		}).DialContext,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            loadRootCAs(),
+			InsecureSkipVerify: os.Getenv("WA_INSECURE") == "1", // 应急逃生口，仅调试用
+		},
 	},
 }
 
