@@ -112,7 +112,7 @@ public static class FavSync
         return merged.Count;
     }
 
-    private static List<string> Parse(JsonElement root)
+    internal static List<string> Parse(JsonElement root)
     {
         if (!root.TryGetProperty("ok", out var ok) || ok.ValueKind != JsonValueKind.True ||
             !root.TryGetProperty("favs", out var favs) || favs.ValueKind != JsonValueKind.Array)
@@ -237,7 +237,7 @@ public static class AccountSync
             new StringContent(payload, Encoding.UTF8, "application/json"), ct);
         resp.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-        return Parse(doc.RootElement);
+        return FavSync.Parse(doc.RootElement);
     }
 
     /// <summary>完整账号同步：推送本地合并，再覆盖本地</summary>
