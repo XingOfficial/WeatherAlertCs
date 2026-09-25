@@ -245,3 +245,28 @@ jobs:
         with:
           name: ios-ipa
           path: WeatherAlert-ios-arm64.ipa
+
+  go-termux:
+    name: Go CLI (Termux, 零依赖)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build linux-arm64 (静态)
+        working-directory: go-weather-alert
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o weather-alert
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o weather-alert-x64
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-termux
+          path: |
+            go-weather-alert/weather-alert
+            go-weather-alert/weather-alert-x64
