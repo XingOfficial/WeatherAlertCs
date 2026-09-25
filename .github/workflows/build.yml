@@ -176,7 +176,7 @@ jobs:
           cp dl/android-terminal/weather-alert-termux_1.0.0_aarch64.deb repo/
           cp dl/linux-debs/weather-alert-cli_1.0.0_amd64.deb repo/
           cp dl/linux-debs/weather-alert-gui_1.0.0_amd64.deb repo/
-          cp dl/go-termux/weather-alert-go_1.0.2_aarch64.deb repo/
+          cp dl/go-termux/weather-alert-go_1.1.0_aarch64.deb repo/
           cd repo
           dpkg-scanpackages --multiversion . > Packages
           gzip -k9f Packages
@@ -271,7 +271,7 @@ jobs:
           cp go-weather-alert/weather-alert "pkg-go/$PREFIX/bin/weather-alert-go"
           chmod 755 "pkg-go/$PREFIX/bin/weather-alert-go"
           cp packaging/go-control pkg-go/DEBIAN/control
-          fakeroot dpkg-deb --build pkg-go weather-alert-go_1.0.2_aarch64.deb
+          fakeroot dpkg-deb --build pkg-go weather-alert-go_1.1.0_aarch64.deb
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
@@ -280,4 +280,4 @@ jobs:
           path: |
             go-weather-alert/weather-alert
             go-weather-alert/weather-alert-x64
-            weather-alert-go_1.0.2_aarch64.deb
+            weather-alert-go_1.1.0_aarch64.deb

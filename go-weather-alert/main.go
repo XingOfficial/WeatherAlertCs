@@ -250,7 +250,17 @@ func printUsage() {
   weather-alert list   [--province 省份] [--type 类型] [--level 等级] [--q 关键词] [--limit N]
   weather-alert detail <预警ID>
   weather-alert stat
-  weather-alert types  列出可选的省份/类型/等级`)
+  weather-alert types  列出可选的省份/类型/等级
+
+账号与收藏云同步:
+  weather-alert signup -t namepassword -n 用户名 -p 密码
+  weather-alert signup -t emailauthcode -e 邮箱 -a 验证码
+  weather-alert sendcode -e 邮箱         获取邮箱验证码
+  weather-alert login -u 用户名 -p 密码   （或 login -e 邮箱 -a 验证码）
+  weather-alert whoami                   查看当前账号
+  weather-alert fav add <ID> / del <ID> / list / sync
+
+参数均支持简写: -u/-n/-p/-e/-a/-t/-s（--server 覆盖默认服务器）`)
 }
 
 func colorLevel(lv string) string {
@@ -281,6 +291,16 @@ func main() {
 		fmt.Println("省份:", strings.Join(provinces, " "))
 		fmt.Println("类型:", strings.Join(alertTypes, " "))
 		fmt.Println("等级:", strings.Join(alertLevels, " "))
+	case "signup":
+		err = cmdSignup(os.Args[2:])
+	case "login":
+		err = cmdLogin(os.Args[2:])
+	case "sendcode":
+		err = cmdSendcode(os.Args[2:])
+	case "fav":
+		err = cmdFav(os.Args[2:])
+	case "whoami":
+		err = cmdWhoami()
 	default:
 		printUsage()
 	}
