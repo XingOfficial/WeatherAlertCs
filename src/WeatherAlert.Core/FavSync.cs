@@ -51,7 +51,7 @@ public sealed class SyncConfig
     public string Normalize()
     {
         var s = Server.Trim().TrimEnd('/');
-        return s.EndsWith("/api/favs.php") ? s[..^"/api/favs.php".Length] : s;
+        return s.EndsWith("/api/favs") ? s[..^"/api/favs".Length] : s;
     }
 }
 
@@ -84,7 +84,7 @@ public static class FavSync
     public static async Task<List<string>> PullAsync(SyncConfig cfg, CancellationToken ct = default)
     {
         using var doc = JsonDocument.Parse(await Http.GetStringAsync(
-            $"{cfg.Normalize()}/api/favs.php?code={Uri.EscapeDataString(cfg.Code)}", ct));
+            $"{cfg.Normalize()}/api/favs?code={Uri.EscapeDataString(cfg.Code)}", ct));
         return Parse(doc.RootElement);
     }
 
@@ -94,7 +94,7 @@ public static class FavSync
     {
         var payload = JsonSerializer.Serialize(new { code = cfg.Code, ids = localIds });
         var resp = await Http.PostAsync(
-            $"{cfg.Normalize()}/api/favs.php",
+            $"{cfg.Normalize()}/api/favs",
             new StringContent(payload, Encoding.UTF8, "application/json"), ct);
         resp.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
